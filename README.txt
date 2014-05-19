@@ -38,7 +38,7 @@ Output - Accuracy per Fold,  Mean Accuracy,St Dev Accuracy,Precisions per Fold,
        Mean Precisions, St Dev Precisions, Micro Ave Precisions, Recalls per Fold,
        Mean Recalls, St Dev Recalls, Micro Ave Recalls,F1 Measure,Mean F1 Measure
        St Dev F1 Measure, Micro Ave F1 Measure for SVM and Naive Bayes classifier
-
+Should be called for each binary class.
 To choose number of features:
 
 plot(1:50, chisq_10$"NAIVE BAYES"$"Mean F1 Measure",type="o",pch=4,col="blue",
@@ -61,11 +61,23 @@ Input  - train_corpus  - object of type VCorpus
          fSelectFunc - function from package fSelect for evaluation importance of features
          nFolds - integer -  for nFolds cross-validation
          nTopics - integer - number of topics
-Output is the same as in  evalClassifier.        
+Output is the same as in  evalClassifier. Should be called for each binary class.       
          
        
 5 Classification of testing data with best performing features and classifier
+classifySVM (train_corpus,train_class,test_corpus,test_class,fSelectFunc,nFeats)
 
+Input - train_corpus
+        train_class
+        test_corpus
+        test_class
+        fSelectFunc
+        nFeats - number of features chosen as a result of tests on training data from previous step
+As classifier SVM was chosen.
+
+Output - Accuracy,Precision,Recall,F1 Measure,Confusion Matrix, Best performing features,
+         SVM(trained classifier), Full feature list and ranking(for clustering).
+Should be called for each binary class
 
 6 Clustering
 a) K-means
