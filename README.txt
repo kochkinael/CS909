@@ -1,7 +1,18 @@
 CS909  Week 10: Text classification, clustering and topic models
-Elena Kochkina
+Author: Elena Kochkina
+
+This code performs task of text classification on Reuters-21578 dataset.
+Dataset can be obtained
+http://www.daviddlewis.com/resources/testcollections/reuters21578/reuters21578.tar.gz.
+
+0 Load dataset to R
+follow instructions at
+http://www2.warwick.ac.uk/fac/sci/dcs/teaching/material/cs909/reuters
+
+Run this code in R iteratively
 
 1 Split the data
+
 2 Preprocessing
 removePunctuationCustom(x)
 posTagStem(x)
