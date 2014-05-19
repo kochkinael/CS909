@@ -295,7 +295,7 @@ t.test(chisq_10$"SVM"$"Accuracy"[,5],
        alternative="greater",paired=TRUE,conf.level=0.95)
 
 # It's time for Topic models!
-evalClassifier <- function(train_corpus,train_class,nFolds,nTopics){
+evalClassifierTM <- function(train_corpus,train_class,nFolds,nTopics){
   # Function to compute matrix column standard deviations
   colSd <- function(x, na.rm=TRUE) {
     if (na.rm) {
@@ -442,7 +442,7 @@ evalClassifier <- function(train_corpus,train_class,nFolds,nTopics){
 }
 ptm <- proc.time()
 
-TopicModelResult=evalClassifier(trainC,TrainTopics[,classNames[1]],10,25)
+TopicModelResult=evalClassifierTM(trainC,TrainTopics[,classNames[1]],10,25)
 
 proc.time() - ptm
 ###############################################################################
