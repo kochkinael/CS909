@@ -107,9 +107,9 @@ for (i in 1:length(testC)){
   testingClasses[i,match(tm::meta(testC[[i]],tag="Topics"),classNames)]=1
 }
 
-# Function to perform x-val for given classifier and given feature selection method and class
+
 evalClassifier <- function(train_corpus,train_class,fSelectFunc,nFolds,nMaxFeats){
-  # Function to compute matrix column standard deviations
+  # helps compute std
   colSd <- function(x, na.rm=TRUE) {
     if (na.rm) {
       n <- colSums(!is.na(x))
@@ -142,14 +142,14 @@ evalClassifier <- function(train_corpus,train_class,fSelectFunc,nFolds,nMaxFeats
   reordered <- sample(numDocs)
   folds <- cut(1:numDocs,breaks=nFolds,labels=F)
   
-  # Looping over number of folds
+  
   for (i in 1:nFolds){
        
-    # Create Document-Term Matrix for documents not in this fold - training set.
+    # Create Document-Term Matrix for  training set.
     train_dtm <- DocumentTermMatrix(train_corpus[reordered[folds!=i]]
                                     ,control=list(weighting=weightTfIdf))
     
-    # Create Document-Term Matrix for documents in this fold only - testing set.
+    # Create Document-Term Matrix for testing set.
     test_dtm <- DocumentTermMatrix(train_corpus[reordered[folds==i]]
                                    ,control=list(weighting=weightTfIdf))
     
@@ -160,19 +160,18 @@ evalClassifier <- function(train_corpus,train_class,fSelectFunc,nFolds,nMaxFeats
     reduced_train_dtm <- train_dtm[,sort(match(sort(dtm_col_sums,decreasing=TRUE)
                                                [1:floor(0.05*length(train_dtm$dimnames$Terms))],dtm_col_sums))]
     
-    # Turn into form that FSelector package works well with
+    # Convert to dafa frame
     d1 <- as.data.frame(as.matrix(reduced_train_dtm))
     d1$class <- train_class[reordered[folds!=i]]
     
-    # Compute feature relevance measure for each term
+    # Compute weight of each feature  for each term
     spisok <- fSelectFunc(class~.,d1)
     
     for (j in 2:nMaxFeats){
-      # (Sort? and) Select the most highly relevant features (in some defined way...)
-      #sorted <- spisok[order(spisok[,"attr_importance"]), , drop=FALSE]
+      
       subset <- cutoff.k(spisok,j)
       
-      # Train model for class j using train_dtm and jth column of train_class
+      # Train classifier
       nb_model <- naiveBayes(d1[,subset],as.factor(d1[,"class"]))
       
       # Find features not in testing dtm - v. important to do first for indexing out others!
@@ -181,18 +180,17 @@ evalClassifier <- function(train_corpus,train_class,fSelectFunc,nFolds,nMaxFeats
         subset <- subset[-missingFeatureIndicies]
       }
       
-      # SVM must train on (potentially) updated subset, so the space dimensions are consistent
-      # with the testing set, and the prediction function can work - no such problem for NB.
+      # train SVM clasifier
       svm_model <- svm(d1[,subset],as.factor(d1[,"class"]))
       
-      # Subset the terms to look for in the testing set
+      
       featureSelectedTestDtm <- as.data.frame(as.matrix(test_dtm[,subset]))
       
-      # Predict if the documents in the test set contain the ith topic or not
+     # Use trained classifier on 'test set'
       nb_results <- predict(nb_model,featureSelectedTestDtm)
       svm_results <- predict(svm_model,featureSelectedTestDtm)
       
-      # Compute classification performance statistics
+      # Classification performance metrics
       nb_CM <- confusionMatrix(nb_results,train_class[reordered[folds==i]],positive="1")
       nb_accuracy[i,j] <- as.numeric(nb_CM$overall["Accuracy"])
       nb_precision[i,j] <- as.numeric(nb_CM$byClass["Pos Pred Value"])
@@ -329,17 +327,15 @@ evalClassifierTM <- function(train_corpus,train_class,nFolds,nTopics){
   reordered <- sample(numDocs)
   folds <- cut(1:numDocs,breaks=nFolds,labels=F)
   
-  # Looping over number of folds
+  # n fold cross validation sor svm in the same fashion as for NB
   for (i in 1:nFolds){
-    # Output current progress
-    print(i)
-    flush.console()
+   
     
-    # Create Document-Term Matrix for documents not in this fold - training set.
+    
     train_dtm <- DocumentTermMatrix(train_corpus[reordered[folds!=i]]
                                     ,control=list(weighting=weightTf))
     
-    # Create Document-Term Matrix for documents in this fold only - testing set.
+    
     test_dtm <- DocumentTermMatrix(train_corpus[reordered[folds==i]]
                                    ,control=list(weighting=weightTf))
     
@@ -351,10 +347,12 @@ evalClassifierTM <- function(train_corpus,train_class,nFolds,nTopics){
     LDA_train<-LDA(reduced_train_dtm,nTopics,method="Gibbs")
     posterior(LDA_train,reduced_train_dtm)
     
+    #use posterior distribution
+    
     posterior_train<-posterior(LDA_train,reduced_train_dtm)
     posterior_test<-posterior(LDA_train,test_dtm)
     
-    
+    # this part is analagous to previous
     d1<-as.data.frame(as.matrix(posterior_train$topics))
     d2<-as.data.frame(as.matrix(posterior_test$topics))
     
@@ -362,15 +360,14 @@ evalClassifierTM <- function(train_corpus,train_class,nFolds,nTopics){
     
     j=1
         
-    # Train model for class j using train_dtm and jth column of train_class
+    
     nb_model <- naiveBayes(d1[,-(nTopics+1)],as.factor(d1[,"class"]))
     svm_model <- svm(d1[,-(nTopics+1)],as.factor(d1[,"class"]))
     
-    # Predict if the documents in the test set contain the ith topic or not
+    
     nb_results <- predict(nb_model,d2)
     svm_results <- predict(svm_model,d2)
     
-    # Compute classification performance statistics
     nb_CM <- confusionMatrix(nb_results,train_class[reordered[folds==i]],positive="1")
     nb_accuracy[i,j] <- as.numeric(nb_CM$overall["Accuracy"])
     nb_precision[i,j] <- as.numeric(nb_CM$byClass["Pos Pred Value"])
@@ -449,46 +446,42 @@ proc.time() - ptm
 # Classification of testing data with best performing features and classifier#
 ##############################################################################
 classifySVM <- function(train_corpus,train_class,test_corpus,test_class,fSelectFunc,nFeats){
-  # Create Document-Term Matrix for documents in training set.
+  
   train_dtm <- DocumentTermMatrix(train_corpus,control=list(weighting=weightTfIdf))
   
-  # Create Document-Term Matrix for documents in testing set.
+  
   test_dtm <- DocumentTermMatrix(test_corpus,control=list(weighting=weightTfIdf))
   
-  # First dimensionality reduction based on ranking via TfIdf - takes 'top' 5% of term-summed TdIdf
-  # some assumptions naturally but a good start, and neccessary for FSelector to handle in RAM! 
+  
   dtm_col_sums <- as.vector(rollup(train_dtm, 1, na.rm=TRUE, FUN = sum))
   reduced_train_dtm <- train_dtm[,sort(match(sort(dtm_col_sums,decreasing=TRUE)
                                              [1:floor(0.05*length(train_dtm$dimnames$Terms))],dtm_col_sums))]
   
-  # Turn into form that FSelector package works well with
+  
   d1 <- as.data.frame(as.matrix(reduced_train_dtm))
   d1$class <- train_class
   
-  # Compute feature relevance measure for each term
+
   spisok <- fSelectFunc(class~.,d1)
   
-  # (Sort? and) Select the most highly relevant features (in some defined way...)
-  #sorted <- spisok[order(spisok[,"attr_importance"]), , drop=FALSE]
+  
   subset <- cutoff.k(spisok,nFeats)
   
-  # Find features not in testing dtm - v. important to do first for indexing out others!
+  
   missingFeatureIndicies <- which(is.na(match(subset,Terms(test_dtm)))==1)
   if(length(missingFeatureIndicies) >0){
     subset <- subset[-missingFeatureIndicies]
   }
   
-  # SVM must train on (potentially) updated subset, so the space dimensions are consistent
-  # with the testing set, and the prediction function can work.
+  
   svm_model <- svm(d1[,subset],as.factor(d1[,"class"]))
   
-  # Subset the terms to look for in the testing set
+  
   featureSelectedTestDtm <- as.data.frame(as.matrix(test_dtm[,subset]))
   
-  # Predict if the documents in the test set contain the topic or not
   svm_results <- predict(svm_model,featureSelectedTestDtm)
   
-  # Compute classification performance statistics      
+      
   svm_CM <- confusionMatrix(svm_results,test_class,positive="1")
   svm_accuracy <- as.numeric(svm_CM$overall["Accuracy"])
   svm_precision <- as.numeric(svm_CM$byClass["Pos Pred Value"])
@@ -619,3 +612,7 @@ table2<- clustCMf(groups2,allClasses)
 groups3<-as.data.frame(fit3$cl)
 colnames(groups3)<-"groups"
 table3<- clustCMf(groups3,allClasses)
+require("clusteval")
+cluster_similarity(groups,fit2$cluster)
+comembership_table(groups,fit2$cluster)
+
