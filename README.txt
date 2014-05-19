@@ -11,6 +11,8 @@ http://www2.warwick.ac.uk/fac/sci/dcs/teaching/material/cs909/reuters
 
 Run this code in R iteratively
 
+Task is completed in 6 steps:
+
 1 Split the data
 
 2 Preprocessing
@@ -18,7 +20,18 @@ removePunctuationCustom(x)
 posTagStem(x)
 preprocessCorpus(corpus)
 3 Feature selection and classifier comparisson on training data
-4 It's time for Topic models
+evalClassifier(train_corpus,train_class,fSelectFunc,nFolds,nMaxFeats)
+
+t.test(chisq_1$"SVM"$"Accuracy"[,50],
+       chisq_1$"NAIVE BAYES"$"Accuracy"[,49],
+       alternative="greater",paired=TRUE,conf.level=0.95)
+
+4 Topic models
+
+
+       
+5 Classification of testing data with best performing features and classifier
+6 Clustering
 
 how to plot
 
@@ -28,6 +41,3 @@ lines(1:50, ig_10$"NAIVE BAYES"$"Mean F1 Measure",type="o",pch=1,col="red")
 legend("right",inset=.05,c("NB CS","NB IG"),
        col=c("blue","red"),pch=c(4,1), lty=1,
        title=expression(italic("corn")),bty="n")
-       
-5 Classification of testing data with best performing features and classifier
-6 Clustering
